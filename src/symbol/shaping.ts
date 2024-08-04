@@ -141,7 +141,7 @@ class TaggedString {
         return this.sectionIndex[index];
     }
 
-    getCharCode(index: number): string {
+    getGrapheme(index: number): string {
         return this.text[index];
     }
 
@@ -326,33 +326,32 @@ function shapeText(
 /* eslint no-useless-computed-key: 0 */
 
 const whitespace: {
-    [_: number]: boolean;
+    [_: string]: boolean;
 } = {
-    [0x09]: true, // tab
-    [0x0a]: true, // newline
-    [0x0b]: true, // vertical tab
-    [0x0c]: true, // form feed
-    [0x0d]: true, // carriage return
-    [0x20]: true, // space
+    [String.fromCodePoint(0x09)]: true, // tab
+    [String.fromCodePoint(0x0a)]: true, // newline
+    [String.fromCodePoint(0x0b)]: true, // vertical tab
+    [String.fromCodePoint(0x0c)]: true, // form feed
+    [String.fromCodePoint(0x0d)]: true, // carriage return
+    [String.fromCodePoint(0x20)]: true, // space
 };
 
 const breakable: {
     [_: number | string]: boolean;
 } = {
-    ['\n']: true,
-    [0x0a]: true, // newline
-    [0x20]: true, // space
-    [0x26]: true, // ampersand
-    [0x29]: true, // right parenthesis
-    [0x2b]: true, // plus sign
-    [0x2d]: true, // hyphen-minus
-    [0x2f]: true, // solidus
-    [0xad]: true, // soft hyphen
-    [0xb7]: true, // middle dot
-    [0x200b]: true, // zero-width space
-    [0x2010]: true, // hyphen
-    [0x2013]: true, // en dash
-    [0x2027]: true  // interpunct
+    [String.fromCodePoint(0x0a)]: true, // newline
+    [String.fromCodePoint(0x20)]: true, // space
+    [String.fromCodePoint(0x26)]: true, // ampersand
+    [String.fromCodePoint(0x29)]: true, // right parenthesis
+    [String.fromCodePoint(0x2b)]: true, // plus sign
+    [String.fromCodePoint(0x2d)]: true, // hyphen-minus
+    [String.fromCodePoint(0x2f)]: true, // solidus
+    [String.fromCodePoint(0xad)]: true, // soft hyphen
+    [String.fromCodePoint(0xb7)]: true, // middle dot
+    [String.fromCodePoint(0x200b)]: true, // zero-width space
+    [String.fromCodePoint(0x2010)]: true, // hyphen
+    [String.fromCodePoint(0x2013)]: true, // en dash
+    [String.fromCodePoint(0x2027)]: true  // interpunct
     // Many other characters may be reasonable breakpoints
     // Consider "neutral orientation" characters at scriptDetection.charHasNeutralVerticalOrientation
     // See https://github.com/mapbox/mapbox-gl-js/issues/3658
@@ -365,12 +364,12 @@ const breakableBefore: {
     [0x28]: true, // left parenthesis
 };
 
-function getGlyphAdvance(
-    codePoint: number,
+function getGraphemeAdvance(
+    grapheme: string,
     section: SectionOptions,
     glyphMap: {
         [_: string]: {
-            [_: number]: StyleGlyph;
+            [_: string]: StyleGlyph;
         };
     },
     imagePositions: {[_: string]: ImagePosition},
@@ -379,7 +378,7 @@ function getGlyphAdvance(
 ): number {
     if (!section.imageName) {
         const positions = glyphMap[section.fontStack];
-        const glyph = positions && positions[codePoint];
+        const glyph = positions && positions[grapheme];
         if (!glyph) return 0;
         return glyph.metrics.advance * section.scale + spacing;
     } else {
@@ -403,7 +402,7 @@ function determineAverageLineWidth(logicalInput: TaggedString,
 
     for (let index = 0; index < logicalInput.length(); index++) {
         const section = logicalInput.getSection(index);
-        totalWidth += getGlyphAdvance(logicalInput.getCharCode(index) as any, section, glyphMap, imagePositions, spacing, layoutTextSize);
+        totalWidth += getGraphemeAdvance(logicalInput.getGrapheme(index), section, glyphMap, imagePositions, spacing, layoutTextSize);
     }
 
     const lineCount = Math.max(1, Math.ceil(totalWidth / maxWidth));
@@ -523,14 +522,14 @@ function determineLineBreaks(
 
     for (let i = 0; i < logicalInput.length(); i++) {
         const section = logicalInput.getSection(i);
-        const codePoint = logicalInput.getCharCode(i);
-        if (!whitespace[codePoint]) currentX += getGlyphAdvance(codePoint as any, section, glyphMap, imagePositions, spacing, layoutTextSize);
-
+        const grapheme = logicalInput.getGrapheme(i);
+        if (!whitespace[grapheme]) currentX += getGraphemeAdvance(grapheme, section, glyphMap, imagePositions, spacing, layoutTextSize);
+        const code = grapheme.charCodeAt(0);
         // Ideographic characters, spaces, and word-breaking punctuation that often appear without
         // surrounding spaces.
         if ((i < logicalInput.length() - 1)) {
-            const ideographicBreak = charAllowsIdeographicBreaking(codePoint as any);
-            if (breakable[codePoint] || ideographicBreak || section.imageName || (i !== logicalInput.length() - 2 && breakableBefore[logicalInput.getCharCode(i + 1)])) {
+            const ideographicBreak = charAllowsIdeographicBreaking(code);
+            if (breakable[grapheme] || ideographicBreak || section.imageName || (i !== logicalInput.length() - 2 && breakableBefore[logicalInput.getGrapheme(i + 1)])) {
 
                 potentialLineBreaks.push(
                     evaluateBreak(
@@ -538,7 +537,7 @@ function determineLineBreaks(
                         currentX,
                         targetWidth,
                         potentialLineBreaks,
-                        calculatePenalty(codePoint as any, logicalInput.getCharCode(i + 1) as any, ideographicBreak && hasServerSuggestedBreakpoints),
+                        calculatePenalty(code, logicalInput.getGrapheme(i + 1).charCodeAt(0), ideographicBreak && hasServerSuggestedBreakpoints),
                         false));
             }
         }
@@ -639,8 +638,8 @@ function shapeLines(shaping: Shaping,
         const graphemes = markedStringToParts(line.text);
 
         for (let i = 0; i < graphemes.length; i++) {
-            const section = line.getSection(0);
-            const sectionIndex = line.getSectionIndex(0);
+            const section = line.getSection(i);
+            const sectionIndex = line.getSectionIndex(i);
             const codePoint = graphemes[i] as any;
             let baselineOffset = 0.0;
             let metrics = null;

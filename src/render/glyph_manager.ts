@@ -42,8 +42,8 @@ export class GlyphManager {
         this.url = url;
     }
 
-    async getGlyphs(glyphs: {[stack: string]: Array<number>}): Promise<GetGlyphsResponse> {
-        const glyphsPromises: Promise<{stack: string; id: number; glyph: StyleGlyph}>[] = [];
+    async getGlyphs(glyphs: {[stack: string]: Array<string>}): Promise<GetGlyphsResponse> {
+        const glyphsPromises: Promise<{stack: string; id: string; glyph: StyleGlyph}>[] = [];
 
         for (const stack in glyphs) {
             for (const id of glyphs[stack]) {
@@ -70,7 +70,7 @@ export class GlyphManager {
         return result;
     }
 
-    async _getAndCacheGlyphsPromise(stack: string, id: number): Promise<{stack: string; id: number; glyph: StyleGlyph}> {
+    async _getAndCacheGlyphsPromise(stack: string, id: string): Promise<{stack: string; id: string; glyph: StyleGlyph}> {
         let entry = this.entries[stack];
         if (!entry) {
             entry = this.entries[stack] = {
@@ -85,13 +85,17 @@ export class GlyphManager {
             return {stack, id, glyph};
         }
         
-        glyph = this._tinySDF(entry, "Noto Sans Living " + stack, id);
-        if (glyph) {
-            entry.glyphs[id] = glyph;
+        if (this._doesCharSupportLocalGlyph(id)) {
+            glyph = this._tinySDF(entry, stack, id);
+            if (glyph) {
+                entry.glyphs[id] = glyph;
+            }
             return {stack, id, glyph};
         }
 
-        const range = Math.floor(id / 256);
+        const codePoint = id.codePointAt(0);
+
+        const range = Math.floor(codePoint / 256);
         if (range * 256 > 65535) {
             throw new Error('glyphs > 65535 not supported');
         }
@@ -111,32 +115,33 @@ export class GlyphManager {
 
         const response = await entry.requests[range];
         for (const id in response) {
-            if (!this._doesCharSupportLocalGlyph(+id)) {
-                entry.glyphs[+id] = response[+id];
-            }
+            entry.glyphs[String.fromCodePoint(+id)] = response[id];
         }
         entry.ranges[range] = true;
         return {stack, id, glyph: response[id] || null};
     }
 
-    _doesCharSupportLocalGlyph(id: number): boolean {
-        return true;
+    _doesCharSupportLocalGlyph(id: string): boolean {
         /* eslint-disable new-cap */
+        const code = id.codePointAt(0);
         return !!this.localIdeographFontFamily &&
-            (unicodeBlockLookup['CJK Unified Ideographs'](id) ||
-            unicodeBlockLookup['Hangul Syllables'](id) ||
-            unicodeBlockLookup['Hiragana'](id) ||
-            unicodeBlockLookup['Katakana'](id));
+            (unicodeBlockLookup['Devanagari'](code) ||
+            unicodeBlockLookup['Bengali'](code) ||
+            unicodeBlockLookup['Tamil'](code) ||
+            unicodeBlockLookup['Telugu'](code) ||
+            unicodeBlockLookup['Tibetan'](code) ||
+            unicodeBlockLookup['Myanmar'](code) ||
+            unicodeBlockLookup['Khmer'](code) ||
+            unicodeBlockLookup['CJK Unified Ideographs'](code) ||
+            unicodeBlockLookup['Hangul Syllables'](code) ||
+            unicodeBlockLookup['Hiragana'](code) ||
+            unicodeBlockLookup['Katakana'](code));
         /* eslint-enable new-cap */
     }
 
-    _tinySDF(entry: Entry, stack: string, id: number): StyleGlyph {
+    _tinySDF(entry: Entry, stack: string, id: string): StyleGlyph {
         const fontFamily = this.localIdeographFontFamily;
         if (!fontFamily) {
-            return;
-        }
-
-        if (!this._doesCharSupportLocalGlyph(id)) {
             return;
         }
 
@@ -146,7 +151,7 @@ export class GlyphManager {
 
         let tinySDF = entry.tinySDF;
         if (!tinySDF) {
-            let fontWeight = '400';
+            let fontWeight = '400'; 
             if (/bold/i.test(stack)) {
                 fontWeight = '900';
             } else if (/medium/i.test(stack)) {

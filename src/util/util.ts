@@ -716,7 +716,6 @@ function splitTextByGraphemes(text: string): string[] {
     const segments = Array.from(segmenter.segment(text));
   
     const ret = segments.map(segment => segment.segment);
-    console.log(text, ret);
     return ret;
 }
   

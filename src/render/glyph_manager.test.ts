@@ -35,7 +35,7 @@ describe('GlyphManager', () => {
         createLoadGlyphRangeStub();
         const manager = createGlyphManager();
 
-        const returnedGlyphs = await manager.getGlyphs({'Arial Unicode MS': [55]});
+        const returnedGlyphs = await manager.getGlyphs({'Arial Unicode MS': [String.fromCodePoint(55)]});
         expect(returnedGlyphs['Arial Unicode MS']['55'].metrics.advance).toBe(12);
     });
 
@@ -43,14 +43,14 @@ describe('GlyphManager', () => {
         const stub = createLoadGlyphRangeStub();
         const manager = createGlyphManager();
 
-        await manager.getGlyphs({'Arial Unicode MS': [0.5]});
+        await manager.getGlyphs({'Arial Unicode MS': [String.fromCodePoint(0.5)]});
         expect(manager.entries['Arial Unicode MS'].ranges[0]).toBe(true);
         expect(stub).toHaveBeenCalledTimes(1);
 
         // We remove all requests as in getGlyphs code.
         delete manager.entries['Arial Unicode MS'].requests[0];
 
-        await manager.getGlyphs({'Arial Unicode MS': [0.5]});
+        await manager.getGlyphs({'Arial Unicode MS': [String.fromCodePoint(0.5)]});
         expect(manager.entries['Arial Unicode MS'].ranges[0]).toBe(true);
         expect(stub).toHaveBeenCalledTimes(1);
     });
@@ -62,7 +62,7 @@ describe('GlyphManager', () => {
 
         const manager = createGlyphManager();
 
-        const returnedGlyphs = await manager.getGlyphs({'Arial Unicode MS': [0x5e73]});
+        const returnedGlyphs = await manager.getGlyphs({'Arial Unicode MS': [String.fromCodePoint(0x5e73)]});
         expect(returnedGlyphs['Arial Unicode MS'][0x5e73]).toBeNull(); // The fixture returns a PBF without the glyph we requested
     });
 
@@ -80,10 +80,10 @@ describe('GlyphManager', () => {
         const manager = createGlyphManager('sans-serif');
 
         //Request char that overlaps Katakana range
-        let returnedGlyphs = await manager.getGlyphs({'Arial Unicode MS': [0x3005]});
+        let returnedGlyphs = await manager.getGlyphs({'Arial Unicode MS': [String.fromCodePoint(0x3005)]});
         expect(returnedGlyphs['Arial Unicode MS'][0x3005]).not.toBeNull();
         //Request char from Katakana range (te テ)
-        returnedGlyphs = await manager.getGlyphs({'Arial Unicode MS': [0x30C6]});
+        returnedGlyphs = await manager.getGlyphs({'Arial Unicode MS': [String.fromCodePoint(0x30C6)]});
         const glyph = returnedGlyphs['Arial Unicode MS'][0x30c6];
         //Ensure that te is locally generated.
         expect(glyph.bitmap.height).toBe(12);
@@ -94,7 +94,7 @@ describe('GlyphManager', () => {
         const manager = createGlyphManager('sans-serif');
 
         // character 平
-        const returnedGlyphs = await manager.getGlyphs({'Arial Unicode MS': [0x5e73]});
+        const returnedGlyphs = await manager.getGlyphs({'Arial Unicode MS': [String.fromCodePoint(0x5e73)]});
         expect(returnedGlyphs['Arial Unicode MS'][0x5e73].metrics.advance).toBe(0.5);
     });
 
@@ -102,7 +102,7 @@ describe('GlyphManager', () => {
         const manager = createGlyphManager('sans-serif');
 
         // Katakana letter te テ
-        const returnedGlyphs = await manager.getGlyphs({'Arial Unicode MS': [0x30c6]});
+        const returnedGlyphs = await manager.getGlyphs({'Arial Unicode MS': [String.fromCodePoint(0x30c6)]});
         expect(returnedGlyphs['Arial Unicode MS'][0x30c6].metrics.advance).toBe(0.5);
     });
 
@@ -110,7 +110,7 @@ describe('GlyphManager', () => {
         const manager = createGlyphManager('sans-serif');
 
         //Hiragana letter te て
-        const returnedGlyphs = await manager.getGlyphs({'Arial Unicode MS': [0x3066]});
+        const returnedGlyphs = await manager.getGlyphs({'Arial Unicode MS': [String.fromCodePoint(0x3066)]});
         expect(returnedGlyphs['Arial Unicode MS'][0x3066].metrics.advance).toBe(0.5);
     });
 
@@ -122,9 +122,9 @@ describe('GlyphManager', () => {
         });
 
         // Katakana letter te
-        const returnedGlyphs = await manager.getGlyphs({'Arial Unicode MS': [0x30c6]});
+        const returnedGlyphs = await manager.getGlyphs({'Arial Unicode MS': [String.fromCodePoint(0x30c6)]});
         expect(returnedGlyphs['Arial Unicode MS'][0x30c6].metrics.advance).toBe(24);
-        await manager.getGlyphs({'Arial Unicode MS': [0x30c6]});
+        await manager.getGlyphs({'Arial Unicode MS': [String.fromCodePoint(0x30c6)]});
         expect(drawSpy).toHaveBeenCalledTimes(1);
     });
 });

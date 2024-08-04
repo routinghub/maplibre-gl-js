@@ -61,7 +61,7 @@ export type GetImagesParamerters = {
  */
 export type GetGlyphsParamerters = {
     type: string;
-    stacks: {[_: string]: Array<number>};
+    stacks: {[_: string]: Array<string>};
     source: string;
     tileID: OverscaledTileID;
 }
