@@ -130,7 +130,7 @@ export class WorkerTile {
 
         // options.glyphDependencies looks like: {"SomeFontName":{"10":true,"32":true}}
         // this line makes an object like: {"SomeFontName":[10,32]}
-        const stacks: {[_: string]: Array<number>} = mapObject(options.glyphDependencies, (glyphs) => Object.keys(glyphs).map(Number));
+        const stacks: {[_: string]: Array<number>} = mapObject(options.glyphDependencies, (glyphs) => Object.keys(glyphs).map(String));
 
         this.inFlightDependencies.forEach((request) => request?.abort());
         this.inFlightDependencies = [];

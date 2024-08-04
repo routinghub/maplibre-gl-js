@@ -6,7 +6,7 @@ import {
 import {verticalizePunctuation} from '../util/verticalize_punctuation';
 import {rtlWorkerPlugin} from '../source/rtl_text_plugin_worker';
 import ONE_EM from './one_em';
-import {warnOnce} from '../util/util';
+import {markedStringToParts, warnOnce} from '../util/util';
 
 import type {StyleGlyph, GlyphMetrics} from '../style/style_glyph';
 import {GLYPH_PBF_BORDER} from '../style/parse_glyph_pbf';
@@ -141,8 +141,8 @@ class TaggedString {
         return this.sectionIndex[index];
     }
 
-    getCharCode(index: number): number {
-        return this.text.charCodeAt(index);
+    getCharCode(index: number): string {
+        return this.text[index];
     }
 
     verticalizePunctuation() {
@@ -337,8 +337,9 @@ const whitespace: {
 };
 
 const breakable: {
-    [_: number]: boolean;
+    [_: number | string]: boolean;
 } = {
+    ['\n']: true,
     [0x0a]: true, // newline
     [0x20]: true, // space
     [0x26]: true, // ampersand
@@ -402,7 +403,7 @@ function determineAverageLineWidth(logicalInput: TaggedString,
 
     for (let index = 0; index < logicalInput.length(); index++) {
         const section = logicalInput.getSection(index);
-        totalWidth += getGlyphAdvance(logicalInput.getCharCode(index), section, glyphMap, imagePositions, spacing, layoutTextSize);
+        totalWidth += getGlyphAdvance(logicalInput.getCharCode(index) as any, section, glyphMap, imagePositions, spacing, layoutTextSize);
     }
 
     const lineCount = Math.max(1, Math.ceil(totalWidth / maxWidth));
@@ -523,12 +524,12 @@ function determineLineBreaks(
     for (let i = 0; i < logicalInput.length(); i++) {
         const section = logicalInput.getSection(i);
         const codePoint = logicalInput.getCharCode(i);
-        if (!whitespace[codePoint]) currentX += getGlyphAdvance(codePoint, section, glyphMap, imagePositions, spacing, layoutTextSize);
+        if (!whitespace[codePoint]) currentX += getGlyphAdvance(codePoint as any, section, glyphMap, imagePositions, spacing, layoutTextSize);
 
         // Ideographic characters, spaces, and word-breaking punctuation that often appear without
         // surrounding spaces.
         if ((i < logicalInput.length() - 1)) {
-            const ideographicBreak = charAllowsIdeographicBreaking(codePoint);
+            const ideographicBreak = charAllowsIdeographicBreaking(codePoint as any);
             if (breakable[codePoint] || ideographicBreak || section.imageName || (i !== logicalInput.length() - 2 && breakableBefore[logicalInput.getCharCode(i + 1)])) {
 
                 potentialLineBreaks.push(
@@ -537,7 +538,7 @@ function determineLineBreaks(
                         currentX,
                         targetWidth,
                         potentialLineBreaks,
-                        calculatePenalty(codePoint, logicalInput.getCharCode(i + 1), ideographicBreak && hasServerSuggestedBreakpoints),
+                        calculatePenalty(codePoint as any, logicalInput.getCharCode(i + 1) as any, ideographicBreak && hasServerSuggestedBreakpoints),
                         false));
             }
         }
@@ -584,6 +585,8 @@ function getAnchorAlignment(anchor: SymbolAnchor) {
 
     return {horizontalAlign, verticalAlign};
 }
+
+const textCache: {[key: string]: string[]} = {};
 
 function shapeLines(shaping: Shaping,
     glyphMap: {
@@ -632,22 +635,19 @@ function shapeLines(shaping: Shaping,
             ++lineIndex;
             continue;
         }
+        
+        const graphemes = markedStringToParts(line.text);
 
-        for (let i = 0; i < line.length(); i++) {
-            const section = line.getSection(i);
-            const sectionIndex = line.getSectionIndex(i);
-            const codePoint = line.getCharCode(i);
+        for (let i = 0; i < graphemes.length; i++) {
+            const section = line.getSection(0);
+            const sectionIndex = line.getSectionIndex(0);
+            const codePoint = graphemes[i] as any;
             let baselineOffset = 0.0;
             let metrics = null;
             let rect = null;
             let imageName = null;
             let verticalAdvance = ONE_EM;
-            const vertical = !(writingMode === WritingMode.horizontal ||
-                // Don't verticalize glyphs that have no upright orientation if vertical placement is disabled.
-                (!allowVerticalPlacement && !charHasUprightVerticalOrientation(codePoint)) ||
-                // If vertical placement is enabled, don't verticalize glyphs that
-                // are from complex text layout script, or whitespaces.
-                (allowVerticalPlacement && (whitespace[codePoint] || charInComplexShapingScript(codePoint))));
+            const vertical = false;
 
             if (!section.imageName) {
                 const positions = glyphPositions[section.fontStack];

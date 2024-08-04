@@ -710,3 +710,16 @@ export type TileJSON = {
     center?: [number, number, number];
     vector_layers: [{id: string}]; // this is partial but enough for what we need
 };
+  
+function splitTextByGraphemes(text: string): string[] {  
+    const segmenter = new Intl.Segmenter();
+    const segments = Array.from(segmenter.segment(text));
+  
+    const ret = segments.map(segment => segment.segment);
+    console.log(text, ret);
+    return ret;
+}
+  
+export function markedStringToParts(markedString: string): string[] {
+    return splitTextByGraphemes(markedString);
+}

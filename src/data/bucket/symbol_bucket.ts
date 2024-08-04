@@ -57,6 +57,7 @@ import type {SizeData} from '../../symbol/symbol_size';
 import type {FeatureStates} from '../../source/source_state';
 import type {ImagePosition} from '../../render/image_atlas';
 import type {VectorTileLayer} from '@mapbox/vector-tile';
+import {markedStringToParts} from '../../util/util';
 
 export type SingleCollisionBox = {
     x1: number;
@@ -362,6 +363,7 @@ export class SymbolBucket implements Bucket {
     writingModes: WritingMode[];
     allowVerticalPlacement: boolean;
     hasRTLText: boolean;
+    textCache: {[key: string]: string[]};
 
     constructor(options: BucketParameters<SymbolStyleLayer>) {
         this.collisionBoxArray = options.collisionBoxArray;
@@ -405,6 +407,8 @@ export class SymbolBucket implements Bucket {
         this.stateDependentLayerIds = this.layers.filter((l) => l.isStateDependent()).map((l) => l.id);
 
         this.sourceID = options.sourceID;
+
+        this.textCache = {};
     }
 
     createArrays() {
@@ -424,6 +428,13 @@ export class SymbolBucket implements Bucket {
         allowVerticalPlacement: boolean,
         doesAllowVerticalWritingMode: boolean) {
 
+        const graphemes = markedStringToParts(text);
+
+        for (let i = 0; i < graphemes.length; i++) {
+            stack[graphemes[i]] = true;
+        }
+
+        /*
         for (let i = 0; i < text.length; i++) {
             stack[text.charCodeAt(i)] = true;
             if ((textAlongLine || allowVerticalPlacement) && doesAllowVerticalWritingMode) {
@@ -433,6 +444,7 @@ export class SymbolBucket implements Bucket {
                 }
             }
         }
+        */
     }
 
     populate(features: Array<IndexedFeature>, options: PopulateParameters, canonical: CanonicalTileID) {

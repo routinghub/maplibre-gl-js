@@ -84,8 +84,8 @@ export class GlyphManager {
         if (glyph !== undefined) {
             return {stack, id, glyph};
         }
-
-        glyph = this._tinySDF(entry, stack, id);
+        
+        glyph = this._tinySDF(entry, "Noto Sans Living " + stack, id);
         if (glyph) {
             entry.glyphs[id] = glyph;
             return {stack, id, glyph};
@@ -120,6 +120,7 @@ export class GlyphManager {
     }
 
     _doesCharSupportLocalGlyph(id: number): boolean {
+        return true;
         /* eslint-disable new-cap */
         return !!this.localIdeographFontFamily &&
             (unicodeBlockLookup['CJK Unified Ideographs'](id) ||
@@ -163,7 +164,7 @@ export class GlyphManager {
             });
         }
 
-        const char = tinySDF.draw(String.fromCharCode(id));
+        const char = tinySDF.draw(id as any);
 
         /**
          * TinySDF's "top" is the distance from the alphabetic baseline to the top of the glyph.
