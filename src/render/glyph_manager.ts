@@ -85,6 +85,7 @@ export class GlyphManager {
             return {stack, id, glyph};
         }
         
+
         if (this._doesCharSupportLocalGlyph(id)) {
             glyph = this._tinySDF(entry, stack, id);
             if (glyph) {
@@ -94,6 +95,10 @@ export class GlyphManager {
         }
 
         const codePoint = id.codePointAt(0);
+        // non-printable
+        if (typeof(codePoint) === 'undefined') {
+            return {stack, id, glyph: null};
+        }
 
         const range = Math.floor(codePoint / 256);
         if (range * 256 > 65535) {
@@ -115,7 +120,7 @@ export class GlyphManager {
 
         const response = await entry.requests[range];
         for (const id in response) {
-            entry.glyphs[String.fromCodePoint(+id)] = response[id];
+            entry.glyphs[id] = response[id];
         }
         entry.ranges[range] = true;
         return {stack, id, glyph: response[id] || null};
@@ -127,6 +132,7 @@ export class GlyphManager {
         return !!this.localIdeographFontFamily &&
             (unicodeBlockLookup['Devanagari'](code) ||
             unicodeBlockLookup['Bengali'](code) ||
+            unicodeBlockLookup['Gujarati'](code) ||
             unicodeBlockLookup['Tamil'](code) ||
             unicodeBlockLookup['Telugu'](code) ||
             unicodeBlockLookup['Tibetan'](code) ||

@@ -9,7 +9,7 @@ import type {RequestManager} from '../util/request_manager';
 export async function loadGlyphRange(fontstack: string,
     range: number,
     urlTemplate: string,
-    requestManager: RequestManager): Promise<{[_: number]: StyleGlyph | null}> {
+    requestManager: RequestManager): Promise<{[_: string]: StyleGlyph | null}> {
     const begin = range * 256;
     const end = begin + 255;
 

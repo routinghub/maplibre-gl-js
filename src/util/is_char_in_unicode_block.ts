@@ -28,7 +28,7 @@ export const unicodeBlockLookup: UnicodeBlockLookup = {
     'Devanagari': (char) => char >= 0x0900 && char <= 0x097F,
     'Bengali': (char) => char >= 0x0980 && char <= 0x09FF,
     // 'Gurmukhi': (char) => char >= 0x0A00 && char <= 0x0A7F,
-    // 'Gujarati': (char) => char >= 0x0A80 && char <= 0x0AFF,
+    'Gujarati': (char) => char >= 0x0A80 && char <= 0x0AFF,
     // 'Oriya': (char) => char >= 0x0B00 && char <= 0x0B7F,
     'Tamil': (char) => char >= 0x0B80 && char <= 0x0BFF,
     'Telugu': (char) => char >= 0x0C00 && char <= 0x0C7F,

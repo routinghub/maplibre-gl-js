@@ -26,7 +26,7 @@ function readFontstack(tag: number, glyphs: Array<StyleGlyph>, pbf: Protobuf) {
 }
 
 function readGlyph(tag: number, glyph: any, pbf: Protobuf) {
-    if (tag === 1) glyph.id = pbf.readVarint();
+    if (tag === 1) glyph.id = String.fromCodePoint(pbf.readVarint());
     else if (tag === 2) glyph.bitmap = pbf.readBytes();
     else if (tag === 3) glyph.width = pbf.readVarint();
     else if (tag === 4) glyph.height = pbf.readVarint();
