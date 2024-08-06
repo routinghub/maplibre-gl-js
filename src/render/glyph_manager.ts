@@ -19,7 +19,8 @@ type Entry = {
     ranges: {
         [range: number]: boolean | null;
     };
-    tinySDF?: TinySDF;
+    tinySDF1?: TinySDF;
+    tinySDF2?: TinySDF;
 };
 
 export class GlyphManager {
@@ -145,6 +146,16 @@ export class GlyphManager {
         /* eslint-enable new-cap */
     }
 
+    _doesCharShouldHaveDoubleResolution(id: string): boolean {
+        /* eslint-disable new-cap */
+        const code = id.codePointAt(0);
+        return unicodeBlockLookup['CJK Unified Ideographs'](code) ||
+            unicodeBlockLookup['Hangul Syllables'](code) ||
+            unicodeBlockLookup['Hiragana'](code) ||
+            unicodeBlockLookup['Katakana'](code);
+        /* eslint-enable new-cap */
+    }    
+
     _tinySDF(entry: Entry, stack: string, id: string): StyleGlyph {
         const fontFamily = this.localIdeographFontFamily;
         if (!fontFamily) {
@@ -153,9 +164,10 @@ export class GlyphManager {
 
         // Client-generated glyphs are rendered at 2x texture scale,
         // because CJK glyphs are more detailed than others.
-        const textureScale = 2;
+        const isDoubleResolution = this._doesCharShouldHaveDoubleResolution(id);
+        const textureScale = isDoubleResolution ? 2 : 1;
 
-        let tinySDF = entry.tinySDF;
+        let tinySDF = isDoubleResolution ? entry.tinySDF2 : entry.tinySDF1;
         if (!tinySDF) {
             let fontWeight = '400'; 
             if (/bold/i.test(stack)) {
@@ -165,14 +177,20 @@ export class GlyphManager {
             } else if (/light/i.test(stack)) {
                 fontWeight = '200';
             }
-            tinySDF = entry.tinySDF = new GlyphManager.TinySDF({
+            tinySDF = new GlyphManager.TinySDF({
                 fontSize: 24 * textureScale,
-                buffer: 3 * textureScale,
+                buffer: 8 * textureScale,
                 radius: 8 * textureScale,
                 cutoff: 0.25,
                 fontFamily,
                 fontWeight
             });
+
+            if (isDoubleResolution) {
+                entry.tinySDF2 = tinySDF;
+            } else {
+                entry.tinySDF1 = tinySDF;
+            }
         }
 
         const char = tinySDF.draw(id as any);
@@ -203,7 +221,7 @@ export class GlyphManager {
                 left: (char.glyphLeft / textureScale + leftAdjustment) || 0,
                 top: char.glyphTop / textureScale - topAdjustment || -8,
                 advance: char.glyphAdvance / textureScale || 24,
-                isDoubleResolution: true
+                isDoubleResolution: isDoubleResolution
             }
         };
     }
