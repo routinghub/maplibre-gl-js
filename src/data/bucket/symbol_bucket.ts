@@ -57,7 +57,7 @@ import type {SizeData} from '../../symbol/symbol_size';
 import type {FeatureStates} from '../../source/source_state';
 import type {ImagePosition} from '../../render/image_atlas';
 import type {VectorTileLayer} from '@mapbox/vector-tile';
-import {markedStringToParts} from '../../util/util';
+import {stringToRenderSegments} from '../../util/util';
 
 export type SingleCollisionBox = {
     x1: number;
@@ -428,10 +428,10 @@ export class SymbolBucket implements Bucket {
         allowVerticalPlacement: boolean,
         doesAllowVerticalWritingMode: boolean) {
 
-        const graphemes = markedStringToParts(text);
+        const segments = stringToRenderSegments(text);
 
-        for (let i = 0; i < graphemes.length; i++) {
-            stack[graphemes[i]] = true;
+        for (let i = 0; i < segments.length; i++) {
+            stack[segments[i]] = true;
         }
 
         /*

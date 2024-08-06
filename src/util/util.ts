@@ -2277,6 +2277,7 @@ const SETS: {[K in SetType]: Set<string>} = (() => {
 
 })();
 
+// Port of Orthographic Syllables Segmenter from r12a.
 // @see https://r12a.github.io/scripts/apps/graphemes/index.html
 //
 // "Orthographic syllables string together grapheme clusters that should 
@@ -2370,7 +2371,11 @@ class UnicodeOrthographicSyllablesSegmenter
 
 };
 
-export function markedStringToParts(markedString: string): string[] {
+export function stringToRenderSegments(markedString: string): string[] {
+    // NOTE: Intl segmenter incorrectly splits by characters,
+    //       some of which are wholly diacritics only. Splitting
+    //       by some kind of reusable word parts is preferred.
+    //
     //return splitTextByGraphemesWithIntl(markedString);
     return (new UnicodeOrthographicSyllablesSegmenter()).segment(markedString);
 }

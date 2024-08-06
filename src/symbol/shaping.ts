@@ -6,7 +6,7 @@ import {
 import {verticalizePunctuation} from '../util/verticalize_punctuation';
 import {rtlWorkerPlugin} from '../source/rtl_text_plugin_worker';
 import ONE_EM from './one_em';
-import {markedStringToParts, warnOnce} from '../util/util';
+import {stringToRenderSegments, warnOnce} from '../util/util';
 
 import type {StyleGlyph, GlyphMetrics} from '../style/style_glyph';
 import {GLYPH_PBF_BORDER} from '../style/parse_glyph_pbf';
@@ -635,12 +635,12 @@ function shapeLines(shaping: Shaping,
             continue;
         }
         
-        const graphemes = markedStringToParts(line.text);
+        const segments = stringToRenderSegments(line.text);
 
-        for (let i = 0; i < graphemes.length; i++) {
+        for (let i = 0; i < segments.length; i++) {
             const section = line.getSection(i);
             const sectionIndex = line.getSectionIndex(i);
-            const codePoint = graphemes[i] as any;
+            const codePoint = segments[i] as any;
             let baselineOffset = 0.0;
             let metrics = null;
             let rect = null;
