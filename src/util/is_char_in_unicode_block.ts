@@ -34,7 +34,7 @@ export const unicodeBlockLookup: UnicodeBlockLookup = {
     'Telugu': (char) => char >= 0x0C00 && char <= 0x0C7F,
     // 'Kannada': (char) => char >= 0x0C80 && char <= 0x0CFF,
     // 'Malayalam': (char) => char >= 0x0D00 && char <= 0x0D7F,
-    // 'Sinhala': (char) => char >= 0x0D80 && char <= 0x0DFF,
+    'Sinhala': (char) => char >= 0x0D80 && char <= 0x0DFF,
     // 'Thai': (char) => char >= 0x0E00 && char <= 0x0E7F,
     // 'Lao': (char) => char >= 0x0E80 && char <= 0x0EFF,
     'Tibetan': (char) => char >= 0x0F00 && char <= 0x0FFF,

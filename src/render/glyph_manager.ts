@@ -22,6 +22,7 @@ type Entry = {
     tinySDF2?: TinySDF;
 };
 
+
 const INF = 1e20;
 
 // Mapbox TinySDF modified to use TextMetric.fontBoundBoxAdvance
@@ -41,10 +42,10 @@ class TinySDF {
     radius: number;
     size: number;
     ctx: CanvasRenderingContext2D;
-    gridOuter: Float64Array;
-    gridInner: Float64Array;
-    f: Float64Array;
-    z: Float64Array;
+    gridOuter: Float32Array;
+    gridInner: Float32Array;
+    f: Float32Array;
+    z: Float32Array;
     v: Uint16Array;
     constructor({
         fontSize = 24,
@@ -74,20 +75,29 @@ class TinySDF {
         // TODO: experiment without anti-aliasing
 
         // temporary arrays for the distance transform
-        this.gridOuter = new Float64Array(size * size);
-        this.gridInner = new Float64Array(size * size);
-        this.f = new Float64Array(size);
-        this.z = new Float64Array(size + 1);
+        this.gridOuter = new Float32Array(size * size);
+        this.gridInner = new Float32Array(size * size);
+        this.f = new Float32Array(size);
+        this.z = new Float32Array(size + 1);
         this.v = new Uint16Array(size);
     }
 
-    _createCanvas(size) {
+    _createCanvas(size: number) {
         const canvas = document.createElement('canvas');
         canvas.width = canvas.height = size;
         return canvas;
     }
 
-    draw(char: string) {
+    draw(char: string): {
+        data: Uint8ClampedArray;
+        width: number;
+        height: number;
+        glyphWidth: number;
+        glyphHeight: number;
+        glyphTop: number;
+        glyphLeft: number;
+        glyphAdvance: number;
+    } {
         const {
             width: glyphAdvance,
             fontBoundingBoxAscent,
@@ -98,7 +108,6 @@ class TinySDF {
 
         // The integer/pixel part of the top alignment is encoded in metrics.glyphTop
         // The remainder is implicitly encoded in the rasterization
-        const bboxVerticalExpandK = 2; // expand bbox vertically for hanging accents
         const glyphTop = Math.ceil(fontBoundingBoxAscent * 1.2); // 1.2 and 1.8 are random number to accomodate Myanmar
         const glyphLeft = 0;
 
@@ -117,6 +126,7 @@ class TinySDF {
         const {ctx, buffer, gridInner, gridOuter} = this;
         ctx.clearRect(buffer, buffer, glyphWidth, glyphHeight);
         ctx.fillText(char, buffer, buffer + glyphTop);
+
         const imgData = ctx.getImageData(buffer, buffer, glyphWidth, glyphHeight);
 
         // Initialize grids outside the glyph range to alpha 0
@@ -144,7 +154,6 @@ class TinySDF {
 
         edt(gridOuter, 0, 0, width, height, width, this.f, this.v, this.z);
         edt(gridInner, buffer, buffer, glyphWidth, glyphHeight, width, this.f, this.v, this.z);
-
         for (let i = 0; i < len; i++) {
             const d = Math.sqrt(gridOuter[i]) - Math.sqrt(gridInner[i]);
             data[i] = Math.round(255 - 255 * (d / this.radius + this.cutoff));
@@ -155,13 +164,17 @@ class TinySDF {
 }
 
 // 2D Euclidean squared distance transform by Felzenszwalb & Huttenlocher https://cs.brown.edu/~pff/papers/dt-final.pdf
-function edt(data: Float64Array, x0: number, y0: number, width: number, height: number, gridSize: number, f: Float64Array, v: Uint16Array, z: Float64Array) {
-    for (let x = x0; x < x0 + width; x++) edt1d(data, y0 * gridSize + x, gridSize, height, f, v, z);
-    for (let y = y0; y < y0 + height; y++) edt1d(data, y * gridSize + x0, 1, width, f, v, z);
+function edt(data: Float32Array, x0: number, y0: number, width: number, height: number, gridSize: number, f: Float32Array, v: Uint16Array, z: Float32Array) {
+    for (let x = x0 + (y0 * gridSize); x < x0 + width + (y0 * gridSize); x++) {
+        edt1d(data, x, gridSize, height, f, v, z);
+    }
+    for (let y = y0 + (x0); y < y0 + height + (x0); y++) {
+        edt1d(data, y * gridSize, 1, width, f, v, z);
+    }
 }
 
 // 1D squared distance transform
-function edt1d(grid: Float64Array, offset: number, stride: number, length: number, f: Float64Array, v: Uint16Array, z: Float64Array) {
+function edt1d(grid: Float32Array, offset: number, stride: number, length: number, f: Float32Array, v: Uint16Array, z: Float32Array) {
     v[0] = 0;
     z[0] = -INF;
     z[1] = INF;
@@ -253,8 +266,10 @@ export class GlyphManager {
             return {stack, id, glyph};
         }
 
-        // glyphs for which we override pbf fonts with tinysdf have priority,
-        // because codepage is not aligned with font, e.g. one pbf font can have > 1 codepage
+        if (glyph !== undefined) {
+            return {stack, id, glyph};
+        }
+
         if (this._doesSegmentSupportLocalGlyph(id)) {
             const glyph = this._tinySDF(entry, stack, id);
             if (glyph) {
@@ -263,10 +278,6 @@ export class GlyphManager {
             }
         }
 
-        if (glyph !== undefined) {
-            return {stack, id, glyph};
-        }
-        
         const codePoint = id.codePointAt(0);
         // non-printable
         if (typeof(codePoint) === 'undefined') {
@@ -293,7 +304,10 @@ export class GlyphManager {
 
         const response = await entry.requests[range];
         for (const id in response) {
-            entry.glyphs[id] = response[id];
+            // do not save glyphs from fonts which are supposed to be rendered locally
+            if (!this._doesSegmentSupportLocalGlyph(id)) {
+                entry.glyphs[id] = response[id];
+            }
         }
         entry.ranges[range] = true;
         return {stack, id, glyph: response[id] || null};
@@ -307,6 +321,7 @@ export class GlyphManager {
             unicodeBlockLookup['Bengali'](code) ||
             unicodeBlockLookup['Gujarati'](code) ||
             unicodeBlockLookup['Tamil'](code) ||
+            unicodeBlockLookup['Sinhala'](code) ||
             unicodeBlockLookup['Telugu'](code) ||
             unicodeBlockLookup['Tibetan'](code) ||
             unicodeBlockLookup['Myanmar'](code) ||

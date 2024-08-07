@@ -2371,11 +2371,13 @@ class UnicodeOrthographicSyllablesSegmenter
 
 };
 
-export function stringToRenderSegments(markedString: string): string[] {
+export function stringToRenderSegments(inputStr: string): string[] {
     // NOTE: Intl segmenter incorrectly splits by characters,
     //       some of which are wholly diacritics only. Splitting
     //       by some kind of reusable word parts is preferred.
     //
-    //return splitTextByGraphemesWithIntl(markedString);
-    return (new UnicodeOrthographicSyllablesSegmenter()).segment(markedString);
+    //return splitTextByGraphemesWithIntl(inputStr);
+    const segments = (new UnicodeOrthographicSyllablesSegmenter()).segment(inputStr);
+    // console.log(inputStr, segments);
+    return segments;
 }
