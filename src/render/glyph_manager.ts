@@ -286,7 +286,7 @@ export class GlyphManager {
 
         const range = Math.floor(codePoint / 256);
         if (range * 256 > 65535) {
-            throw new Error('glyphs > 65535 not supported');
+            throw new Error(`glyphs > 65535 not supported, id='${id}', codePoint(0)=${codePoint}`);
         }
 
         if (entry.ranges[range]) {
