@@ -466,6 +466,39 @@ export class Popup extends Evented {
     }
 
     /**
+     * Sets the popup's content to the element provided as a DOM node.
+     *
+     * @param htmlNode - A DOM node to be used as content for the popup.
+     * @example
+     * Create an element with the popup content
+     * ```ts
+     * let div = document.createElement('div');
+     * div.innerHTML = 'Hello, world!';
+     * let popup = new Popup()
+     *   .setLngLat(e.lngLat)
+     *   .setDOMContent(div)
+     *   .addTo(map);
+     * ```
+     */
+    setDOMContentNoFocus(htmlNode: Node): this {
+        if (this._content) {
+            // Clear out children first.
+            while (this._content.hasChildNodes()) {
+                if (this._content.firstChild) {
+                    this._content.removeChild(this._content.firstChild);
+                }
+            }
+        } else {
+            this._content = DOM.create('div', 'maplibregl-popup-content', this._container);
+        }
+
+        // The close button should be the last tabbable element inside the popup for a good keyboard UX.
+        this._content.appendChild(htmlNode);
+        this._update();
+        return this;
+    }    
+
+    /**
      * Adds a CSS class to the popup container element.
      *
      * @param className - Non-empty string with CSS class name to add to popup container
